@@ -1,0 +1,7 @@
+fasttreeshap==0.1.6
+pip-chill==1.0.3
+pydotplus==2.0.2
+pyod==2.0.0
+statsmodels==0.14.1
+ucimlrepo==0.0.7
+xgboost==2.0.3
