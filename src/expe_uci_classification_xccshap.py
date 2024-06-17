@@ -12,6 +12,7 @@ import expe_utils as ccshap
 import os.path
 import warnings
 import os
+from time import time
 
 rng = np.random.RandomState(42)
 RANDOM_SEED = 42
@@ -50,14 +51,14 @@ def ccshap_full(id_dataset, output_path, model_path, model_type = RandomForestCl
       class_acc = []
       class_f1 = []
       class_mcc = []
-      dtc_acc = []
-      dtc_f1 = []
-      dtc_mcc = []
       surr_test_acc = []
       surr_test_f1 = []
       surr_test_mcc = []
       surr_test_avg_pl = []
       surr_test_std_pl = []
+      shap_time = []
+      surr_time = []
+      total_time = []
       print('Using target: ',target_col)
       df_X_train, df_X_test, df_y_train, df_y_test = train_test_split(df_X, df_y[target_col], test_size=0.3, random_state=rng)
       df_X_all = df_X.to_numpy()
@@ -74,7 +75,9 @@ def ccshap_full(id_dataset, output_path, model_path, model_type = RandomForestCl
       datasize = min(np.shape(df_X_train)[0]//2, 100)
       print('Explaining model...')
       xccshap_model = XCCShap(model=class_model)
+      start_time = time()
       shapmat, row_labels, col_labels = xccshap_model.explain(df_X_train)
+      exp_time = time()
       tau_x = xccshap_model.tau_x_
       tau_y = xccshap_model.tau_y_
       nclust = []
@@ -93,6 +96,7 @@ def ccshap_full(id_dataset, output_path, model_path, model_type = RandomForestCl
       surr_model=XCCShapSurrogate(xccshap_model)
       surr_baseline = DecisionTreeClassifier()
       surr_model.fit(df_X_train,df_y_train)
+      end_time = time()
       surr_baseline.fit(df_X_train,df_y_train)
       y_test_predicted_surr=surr_model.predict(df_X_test)
       surr_test_acc.append(accuracy_score(y_predicted,y_test_predicted_surr))
@@ -113,6 +117,9 @@ def ccshap_full(id_dataset, output_path, model_path, model_type = RandomForestCl
       ncols_train.append(np.shape(df_X_train)[1])
       nrows_test.append(np.shape(df_X_test)[0])
       ncols_test.append(np.shape(df_X_test)[1])
+      shap_time.append(exp_time-start_time)
+      surr_time.append(end_time-exp_time)
+      total_time.append(end_time-start_time)
       data = {}
       data["dataset"] = dsname
       data["class"] = dstarget
@@ -134,6 +141,9 @@ def ccshap_full(id_dataset, output_path, model_path, model_type = RandomForestCl
       data["surr_test_mcc"] = surr_test_mcc
       data["surr_test_avg_pl"] = surr_test_avg_pl
       data["surr_test_std_pl"] = surr_test_std_pl
+      data["shap_time"] = shap_time
+      data["surr_time"] = surr_time
+      data["total_time"] = total_time
       print('Done.')
       out_table=pd.DataFrame(data)
       output_file_name = "xccshap_full_xccshap_"+dataset_name.replace(" ", "_")+"_"+target_col.replace(" ", "_")+".csv"

@@ -10,6 +10,7 @@ import expe_utils as ccshap
 import os.path
 import warnings
 import os
+from time import time
 
 rng = np.random.RandomState(42)
 RANDOM_SEED = 42
@@ -66,6 +67,9 @@ def ccshap_full(id_dataset, output_path, model_path, max_depth=-1, model_type = 
       ncols_train = []
       nrows_test = []
       ncols_test = []
+      clust_time = []
+      exp_time = []
+      total_time = []
       print('Using target: ',target_col)
       df_X_train, df_X_test, df_y_train, df_y_test = train_test_split(df_X, df_y[target_col], test_size=0.3, random_state=rng)
       df_X_all = df_X.to_numpy()
@@ -85,9 +89,12 @@ def ccshap_full(id_dataset, output_path, model_path, max_depth=-1, model_type = 
       for k in K:
          if k>1:
             repr.append(k)
+            start_time = time()
             clustering, centroids = mdav(df_X_train.to_numpy(), df_y_train.to_numpy(), k)
+            cl_time = time()
             print('Computing surrogate models...')
             explanations = gen_explanations(clustering, max_depth=max_depth)
+            end_time = time()
             y_test_exp_predictions = pre_explanations(explanations, centroids, df_X_test.to_numpy())
             nclus.append(len(clustering))
             surr_test_acc.append(accuracy_score(y_predicted, y_test_exp_predictions))
@@ -108,6 +115,9 @@ def ccshap_full(id_dataset, output_path, model_path, max_depth=-1, model_type = 
             ncols_train.append(np.shape(df_X_train)[1])
             nrows_test.append(np.shape(df_X_test)[0])
             ncols_test.append(np.shape(df_X_test)[1])
+            clust_time.append(cl_time-start_time)
+            exp_time.append(end_time-cl_time)
+            total_time.append(end_time-start_time)
       data = {}
       data["repr"] = repr
       data["dataset"] = dsname
@@ -125,9 +135,12 @@ def ccshap_full(id_dataset, output_path, model_path, max_depth=-1, model_type = 
       data["surr_test_mcc"] = surr_test_mcc
       data["surr_test_avg_pl"] = surr_test_avg_pl
       data["surr_test_std_pl"] = surr_test_std_pl
+      data["clust_time"] = clust_time
+      data["exp_time"] = exp_time
+      data["total_time"] = total_time
       print('Done.')
       out_table=pd.DataFrame(data)
-      output_file_name = "xccshap_full_mdav_"+dataset_name.replace(" ", "_")+"_"+target_col.replace(" ", "_")+".csv"
+      output_file_name = "xccshap_full_masdt_"+dataset_name.replace(" ", "_")+"_"+target_col.replace(" ", "_")+".csv"
       output_file = os.path.join(output_path, output_file_name)
       out_table=pd.DataFrame(data)
       out_table.to_csv(output_file, index=False)
