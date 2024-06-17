@@ -27,4 +27,10 @@ Run the experiments for XGBTA:
 sh ./run_ccshap_uci_xgbta_load.sh
 ```
 
+Run the experiments to get the runtime on Adult:
+
+```
+sh ./run_ccshap_uci_time.sh
+```
+
 The results are in the output directories, one file per dataset.
