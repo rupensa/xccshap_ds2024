@@ -30,8 +30,13 @@ class XCCShap():
 
 
     def explain(self, X):
+        start_time = time()
         self.shapmat=self._get_shapmat(X)
+        shapmat_time = time()
+        print(f'SHAPMAT computation time: {shapmat_time-start_time}')
         self.row_labels_, self.col_labels_, self.tau_x_, self.tau_y_ = self._get_shap_coclustering()
+        coclust_time = time()
+        print(f'COCLUST computation time: {coclust_time-shapmat_time}')
         return self.shapmat, self.row_labels_, self.col_labels_
 
     def _shap_norm(self, arr):
@@ -40,13 +45,10 @@ class XCCShap():
 
     def _get_shapmat(self, X):
         y = self.model.predict(X)
-        start_time = time()
         if (type(self.explainer).__name__ in ['KernelExplainer']):
             shapmat = self.explainer.shap_values(X, silent=True)
         else:
             shapmat = self.explainer.shap_values(X, check_additivity=False)
-        end_time = time()
-        print(f'SHAP computation time: {end_time-start_time}')
         if (len(np.shape(shapmat)) > 2):
             if (self.method=='perclass'):
                 shapmat = abs(shapmat[y[0]])
