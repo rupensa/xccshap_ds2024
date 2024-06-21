@@ -5,6 +5,7 @@ from fasttreeshap import TreeExplainer
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from XCCShap.ccutils import XCoClust, CoClust
+from time import time
 
 MAX_JOBS = 1
 NCCRUNS = 30
@@ -39,10 +40,13 @@ class XCCShap():
 
     def _get_shapmat(self, X):
         y = self.model.predict(X)
+        start_time = time()
         if (type(self.explainer).__name__ in ['KernelExplainer']):
             shapmat = self.explainer.shap_values(X, silent=True)
         else:
             shapmat = self.explainer.shap_values(X, check_additivity=False)
+        end_time = time()
+        print(f'SHAP computation time: {end_time-start_time}')
         if (len(np.shape(shapmat)) > 2):
             if (self.method=='perclass'):
                 shapmat = abs(shapmat[y[0]])
