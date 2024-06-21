@@ -94,10 +94,8 @@ def ccshap_full(id_dataset, output_path, model_path, model_type = RandomForestCl
       tauy = []
       print('Computing surrogate models...')
       surr_model=XCCShapSurrogate(xccshap_model)
-      surr_baseline = DecisionTreeClassifier()
       surr_model.fit(df_X_train,df_y_train)
       end_time = time()
-      surr_baseline.fit(df_X_train,df_y_train)
       y_test_predicted_surr=surr_model.predict(df_X_test)
       surr_test_acc.append(accuracy_score(y_predicted,y_test_predicted_surr))
       surr_test_f1.append(f1_score(y_predicted,y_test_predicted_surr, average='macro'))

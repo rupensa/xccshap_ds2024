@@ -63,21 +63,36 @@ class XCCShap():
         return shapmat
 
     def _get_shap_coclustering(self):
-        model = {}
+        #model = {}
+        tau_x_run = {}
+        tau_y_run = {}
         tauxy = {}
+        row_labels_run = {}
+        col_labels_run = {}
         data=self.shapmat
         emptycols = np.where(~data.any(axis=0))[0]
         data=np.delete(data, emptycols, axis=1)
+        model = CoClust(initialization = 'extract_centroids', k=min(50,np.shape(data)[0]), l=min(50,np.shape(data)[1]), verbose = False)
         for run in tqdm(range(self.nccrun), disable=not(self.ccprogressbar)):
-            model[run] = CoClust(initialization = 'extract_centroids', k=min(50,np.shape(data)[0]), l=min(50,np.shape(data)[1]), verbose = False)
-            model[run].fit(data)
-            tau_x, tau_y = model[run].compute_taus()
-            tauxy[run] = tau_x
+            #model[run] = CoClust(initialization = 'extract_centroids', k=min(50,np.shape(data)[0]), l=min(50,np.shape(data)[1]), verbose = False)
+            #model[run].fit(data)
+            model.fit(data)
+            #tau_x, tau_y = model[run].compute_taus()
+            tau_x_run[run], tau_y_run[run] = model.compute_taus()
+            row_labels_run[run] = np.array(model.row_labels_).astype(int)
+            col_labels_run[run]=np.array(model.column_labels_).astype(int)
+            tauxy[run] = tau_x_run[run]
         bestrun = max(tauxy, key=tauxy.get)
-        new_clust_label = max(model[bestrun].column_labels_) + 1
-        row_labels=np.array(model[bestrun].row_labels_).astype(int)
-        col_labels=np.array(model[bestrun].column_labels_).astype(int)
-        tau_x, tau_y = model[bestrun].compute_taus()
+        #new_clust_label = max(model[bestrun].column_labels_) + 1
+        #row_labels=np.array(model[bestrun].row_labels_).astype(int)
+        #col_labels=np.array(model[bestrun].column_labels_).astype(int)
+        #tau_x, tau_y = model[bestrun].compute_taus()
+        new_clust_label = max(col_labels_run[bestrun]) + 1
+        row_labels=row_labels_run[bestrun]
+        col_labels= col_labels_run[bestrun]
+        #tau_x, tau_y = model[bestrun].compute_taus()
+        tau_x = tau_x_run[bestrun]
+        tau_y = tau_y_run[bestrun]
         for i in emptycols:
             col_labels = np.insert(col_labels,i,new_clust_label)
         clust_labels, clust_counts = np.unique(row_labels, return_counts=True)

@@ -106,6 +106,7 @@ class CoClust(BaseEstimator, ClusterMixin, TransformerMixin):
         self.row_labels_ = None
         self.column_labels_ = None
         self.execution_time_ = None
+        self._n_run = 0
 
         np.seterr(all='ignore')
 
@@ -159,6 +160,41 @@ class CoClust(BaseEstimator, ClusterMixin, TransformerMixin):
         logging.debug("[INFO] Row's initialization: {0}".format(list(self._row_assignment)))
         logging.debug("[INFO] Col's initialization: {0}".format(list(self._col_assignment)))
 
+    def _reinit_all(self):
+        """
+        Initialize all variables needed by the model.
+
+        :param V: the dataset
+        :return:
+        """
+
+
+
+        # the number of row/ column clusters
+        self._n_row_clusters = 0
+        self._n_col_clusters = 0
+
+        # a list of n_documents (n_features) elements
+        # for each document (feature) d contains the row cluster index d is associated to
+        self._row_assignment = np.zeros(self._n_documents)
+        self._col_assignment = np.zeros(self._n_features)
+
+
+        self.tau_x = []
+        self.tau_y = []
+        
+        if (self.initialization == 'discrete') or (self.initialization == 'random_optimal'):
+            self._discrete_initialization()
+        elif self.initialization == 'random':
+            self._random_initialization()
+        elif self.initialization == 'extract_centroids':
+            self._extract_centroids_initialization()
+        else:
+            raise ValueError("The only valid initialization methods are: random, discrete, extract_centroids")
+
+
+        logging.debug("[INFO] Row's initialization: {0}".format(list(self._row_assignment)))
+        logging.debug("[INFO] Col's initialization: {0}".format(list(self._col_assignment)))
 
     def fit(self, V, y=None):
         """
@@ -180,7 +216,110 @@ class CoClust(BaseEstimator, ClusterMixin, TransformerMixin):
         """
 
         # Initialization phase
+        if (self._n_run>0):
+            return self.refit()
+
         self._init_all(V)
+
+        self._T = self._init_contingency_matrix(0)[1]
+        tau_x, tau_y = self.compute_taus()
+        
+        self.tau_x.append(tau_x)
+        self.tau_y.append(tau_y)
+
+        start_time = time()
+
+        # Execution phase
+        self._actual_n_iterations = 0
+        actual_n_iterations = 0 
+        
+        while actual_n_iterations < self.n_iterations:
+            actual_iteration_x = 0    
+            cont = True
+            while cont:
+                # perform a move within the rows partition
+                cont = self._perform_row_move()
+
+                actual_iteration_x += 1
+                self._actual_n_iterations +=1 
+                
+                if actual_iteration_x > self.n_iter_per_mode:
+                    cont = False
+                if self.verbose:
+                    self._T = self._init_contingency_matrix(0)[1]
+                    tau_x, tau_y = self.compute_taus()
+                    
+                    self.tau_x.append(tau_x)
+                    self.tau_y.append(tau_y)
+            
+            
+            actual_iteration_y = 0
+            cont = True
+            while cont:
+                # perform a move within the rows partition
+                cont = self._perform_col_move()
+
+                actual_iteration_y += 1
+                self._actual_n_iterations +=1 
+
+                if actual_iteration_y > self.n_iter_per_mode:
+                    cont = False
+                if self.verbose:
+                    self._T = self._init_contingency_matrix(0)[1]
+                    tau_x, tau_y = self.compute_taus()
+                    
+                    self.tau_x.append(tau_x)
+                    self.tau_y.append(tau_y)
+                
+            if (actual_iteration_x == 1) and (actual_iteration_y == 1):
+                actual_n_iterations = self.n_iterations
+            else:
+                actual_n_iterations += 1
+            
+
+        end_time = time()
+        if not self.verbose:
+            self._T = self._init_contingency_matrix(1)[1]
+            tau_x, tau_y = self.compute_taus()
+            
+            self.tau_x.append(tau_x)
+            self.tau_y.append(tau_y)
+
+        execution_time = end_time - start_time
+        logging.info('#####################################################')
+        logging.info("[INFO] Execution time: {0}".format(execution_time))
+
+        # clone cluster assignments and transform in lists
+        self.row_labels_ = np.copy(self._row_assignment).tolist()
+        self.column_labels_ = np.copy(self._col_assignment).tolist()
+        self.execution_time_ = execution_time
+
+        logging.info("[INFO] Number of row clusters found: {0}".format(self._n_row_clusters))
+        logging.info("[INFO] Number of column clusters found: {0}".format(self._n_col_clusters))
+        self._n_run += 1
+        return self
+
+    def refit(self):
+        """
+        Fit CoClust to the provided data.
+
+        Parameters
+        -----------
+
+        V : array-like or sparse matrix;
+            shape of the matrix = (n_documents, n_features)
+
+        y : unused parameter
+
+        Returns
+        --------
+
+        self
+
+        """
+
+        # Initialization phase
+        self._reinit_all()
 
         self._T = self._init_contingency_matrix(0)[1]
         tau_x, tau_y = self.compute_taus()
@@ -259,8 +398,6 @@ class CoClust(BaseEstimator, ClusterMixin, TransformerMixin):
         logging.info("[INFO] Number of column clusters found: {0}".format(self._n_col_clusters))
 
         return self
-
-
 
     def _discrete_initialization(self):
         
