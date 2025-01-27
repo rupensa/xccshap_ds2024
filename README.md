@@ -1,5 +1,5 @@
 # XCCSHAP
-Source code for the paper "Combining SHAP-Driven Co-clustering and Shallow Decision Trees to Explain XGBoost", Proceedings of 27th International Conference on Discovery Science 2024. Lecture Notes in Computer Science, vol 15243. Springer, Cham, by Pensa, R.G., Crombach, A., Peignier, S., Rigotti, C. [[paper]](https://doi.org/10.1007/978-3-031-78977-9_24)
+Source code for the paper "Combining SHAP-Driven Co-clustering and Shallow Decision Trees to Explain XGBoost", Proceedings of 27th International Conference on Discovery Science 2024. Lecture Notes in Computer Science, vol 15243. Springer, Cham, by Pensa, R.G., Crombach, A., Peignier, S., Rigotti, C. [[paper]](https://doi.org/10.1007/978-3-031-78977-9_24) [[pdf]](xccshap_paper.pdf)
 
 ## How to reproduce the experiments:
 
